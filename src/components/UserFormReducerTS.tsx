@@ -1,6 +1,8 @@
 import React, { useReducer } from "react";
 import { login } from "../utils/loginTS";
 import LoaderComponent from "./LoaderComponent";
+import { MessageUI } from "./MessageUI";
+import SubmitFormButton from './SubmitFormButton'
 import { Button, Checkbox, Container, Form, Message } from "semantic-ui-react";
 
 const styles = {
@@ -20,7 +22,8 @@ const initialState: LoginState = {
   isLoading: false,
   isLoggedIn: false,
   isChecked: false,
-  error: ""
+  errorMessage: "",
+  succesMessage: "",
 };
 
 interface LoginState {
@@ -29,19 +32,15 @@ interface LoginState {
   isLoading: boolean;
   isLoggedIn: boolean;
   isChecked: boolean;
-  error: string;
+  errorMessage: string;
+  succesMessage: string;
 };
 
-// type LoginState = typeof initialState;
-// interface LoginAction {
-//   type: string;
-//   fieldname?: string;
-//   payload?: string;
-// }
-
 type LoginAction =
-  | { type: 'LOGIN' | 'LOGOUT' | 'SUCCES' | 'ERROR' | 'TOGGLECHECK' }
+  | { type: 'LOGIN' | 'LOGOUT' | 'TOGGLECHECK' }
   | { type: 'FIELD'; fieldname: string; payload: string; }
+  | { type: 'ERROR'; errorMessage: string }
+  | { type: 'SUCCES'; succesMessage: string }
 
 function loginReducer(state: LoginState, action: LoginAction) {
   switch (action.type) {
@@ -58,12 +57,14 @@ function loginReducer(state: LoginState, action: LoginAction) {
         username: "",
         password: "",
         isChecked: false,
+        errorMessage: '',
+        succesMessage: '',
       };
     case "ERROR":
       return {
         ...state,
         isLoading: false,
-        error: "username or password is wrong, please try again!",
+        errorMessage: action.errorMessage,
         isChecked: false,
         username: "",
         password: "",
@@ -73,6 +74,8 @@ function loginReducer(state: LoginState, action: LoginAction) {
         ...state,
         isLoggedIn: true,
         isLoading: false,
+        succesMessage: action.succesMessage,
+        errorMessage: '',
       };
     case "FIELD":
       return {
@@ -84,7 +87,6 @@ function loginReducer(state: LoginState, action: LoginAction) {
         ...state,
         isChecked: !state.isChecked,
       };
-
     default:
       return state;
   }
@@ -92,39 +94,26 @@ function loginReducer(state: LoginState, action: LoginAction) {
 
 export default function UserFormReducerTS() {
   const [state, dispatch] = useReducer(loginReducer, initialState);
-  const { isLoading, error, username, password, isLoggedIn, isChecked, } = state;
-
+  const { isLoading, errorMessage, succesMessage, username, password, isLoggedIn, isChecked, } = state;
   const formFilled = isChecked && username !== "" && password !== "";
+  let showMessage = errorMessage.length || succesMessage.length ? true : false
 
   const onSubmitHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch({ type: "LOGIN" });
     try {
-      await login({ username, password });
-      dispatch({ type: "SUCCES" });
+      const returnValueOfPromise = await login({ username, password });
+      dispatch({ type: "SUCCES", succesMessage: returnValueOfPromise as string });
     } catch (error) {
-      dispatch({ type: "ERROR" });
-      console.log("message err:", error);
+      dispatch({ type: "ERROR", errorMessage: error });
     }
   };
-
-  const SubmitFormButton = () => (
-    <Button
-      style={{ width: "100%" }}
-      type="submit"
-      onClick={onSubmitHandler}
-      disabled={!formFilled}
-    >
-      Submit
-    </Button>
-  );
 
   return (
     <Container style={styles.container}>
       {isLoggedIn ? (
         <Message>
           <p>Welcome {username}!</p>
-          {/* <p>{message}</p> */}
           <Button onClick={() => dispatch({ type: "LOGOUT" })}> logout</Button>
         </Message>
       ) : (
@@ -135,7 +124,6 @@ export default function UserFormReducerTS() {
                 type="text"
                 placeholder="First Name"
                 value={username}
-                //onChange={(e) => setUsername(e.currentTarget.value)}
                 onChange={(e) =>
                   dispatch({
                     type: "FIELD",
@@ -167,15 +155,15 @@ export default function UserFormReducerTS() {
                 onClick={() => dispatch({ type: "TOGGLECHECK" })}
               />
             </Form.Field>
-            {isLoading ? <LoaderComponent /> : <SubmitFormButton />}
+            {isLoading ?
+              <LoaderComponent /> :
+              <SubmitFormButton onSubmitHandler={onSubmitHandler} formFilled={formFilled}
+              />}
           </Form>
         )}
-      {error && (
-        <Message negative>
-          <p>{error}</p>
-          {/* <p>{message}</p> */}
-        </Message>
-      )}
+      { showMessage &&
+        <MessageUI errorMessage={errorMessage} succesMessage={succesMessage} />
+      }
     </Container>
   );
 };
