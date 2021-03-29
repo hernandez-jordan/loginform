@@ -1,10 +1,12 @@
+import React from "react";
 import { Button } from "semantic-ui-react";
-interface ISubmitFormButton {
+
+type SubmitFormButtonProps = {
   onSubmitHandler: (e: React.FormEvent) => Promise<void>;
   formFilled: boolean;
 }
 
-export default function SubmitFormButton({ onSubmitHandler, formFilled }: ISubmitFormButton) {
+const SubmitFormButton = ({ onSubmitHandler, formFilled }: SubmitFormButtonProps): React.ReactElement => {
   return (
     <Button
       style={{ width: "100%" }}
@@ -15,5 +17,6 @@ export default function SubmitFormButton({ onSubmitHandler, formFilled }: ISubmi
       Submit
     </Button>
   )
-
 }
+
+export default SubmitFormButton
